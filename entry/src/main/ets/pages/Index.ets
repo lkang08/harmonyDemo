@@ -2,8 +2,10 @@ import { AddressBook, Person } from '../model/Model';
 import { AddressBookView } from './MyComponent';
 import taskpool from '@ohos.taskpool';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, router } from '@kit.ArkUI';
 import { SearchSwiper } from '../component/SearchSwiper';
+import { RouterPath } from '../constant/RouterPath';
+import { AppRouter } from '../router/AppRouter';
 
 @Concurrent
 function serviceHandle(pars: number): number {
@@ -25,7 +27,7 @@ function serviceHandle(pars: number): number {
 @Entry
 @Component
 struct Index {
-  @State message: string = 'Hello World';
+  @State message: string = 'goto download';
   @Provide addrBook: AddressBook = new AddressBook();
   @State selectedPerson: Person = new Person("", "", 0, "", []);
 
@@ -57,7 +59,9 @@ struct Index {
       Blank().height(5)
       Column() {
         Text(this.message).fontSize(14).backgroundColor(Color.Red).height(40).onClick(()=>{
-          this.test()
+          //this.test()
+          //AppRouter.pushNamedPage(RouterPath.DownloadPage)
+          router.pushUrl({url:'pages/DownloadPage'})
         })
       }
       .alignItems(HorizontalAlign.Start)

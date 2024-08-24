@@ -65,7 +65,7 @@ export class AddressBook {
       if (callback) {
         callback(this.me)
       }
-      DLog.log('init end')
+      DLog.debug('init end')
     }, 2000)
   }
 }

@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.example.demo",
+    "bundleName": "com.example.harmonydemo",
     "vendor": "example",
     "versionCode": 1000000,
     "versionName": "1.0.0",
