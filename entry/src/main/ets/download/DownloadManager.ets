@@ -2,98 +2,144 @@ import { BusinessError, request } from '@kit.BasicServicesKit';
 import { Context } from '@ohos.arkui.UIContext';
 import { DLog } from '../util/DLog';
 
-export class DownloadManager {
-  private downloadingTask: Array<request.agent.Task> = []
+class DownloadTask {
+  task: request.agent.Task
+  path: string
 
-  pauseTask(isPause: boolean) {
-    this.downloadingTask.forEach((task) => {
-      if (isPause) {
-        task.pause((err: BusinessError) => {
-          if (err) {
-            this.log(`Failed to pause the download task, Code: ${err.code}, message: ${err.message}`);
-            return;
-          }
-          this.log(`Succeeded in pausing a download task. `);
-        });
-      } else {
-        task.resume((err: BusinessError) => {
-          if (err) {
-            this.log(`Failed to resume the download task, Code: ${err.code}, message: ${err.message}`);
-            return;
-          }
-          this.log(`Succeeded in resuming a download task. `);
-        });
-      }
-    })
+  constructor(path: string, task: request.agent.Task) {
+    this.path = path
+    this.task = task
+  }
+}
+
+export class DownloadManager {
+  private downloadingTask: Array<DownloadTask> = [] //支持取消的task
+
+  private constructor() {
+  }
+
+  private static instance: DownloadManager = new DownloadManager()
+
+  static getInstance() {
+    return DownloadManager.instance
   }
 
   log(msg: string) {
     DLog.debug(msg, 'DownloadManager')
   }
 
-  download(context: Context, url: string, callback?: (result: boolean, processed: number) => void) {
-    this.log('download begin')
-    let config1: request.agent.Config = {
+  deleteTask(path: string) {
+    if (path.length == 0) {
+      return
+    }
+    let index = this.downloadingTask.findIndex((task) => {
+      return path == task.path
+    })
+    if (index >= 0) {
+      this.log('deleteTask ' + path)
+      let del = this.downloadingTask.splice(index, 1)
+      del[0].task.stop((err: BusinessError) => {
+        if (err) {
+          this.log(`deleteTask fail,tid=${del[0].task?.tid} Code: ${err.code}, message: ${err.message}`);
+          return;
+        }
+        this.log(`deleteTask Succeeded `);
+      })
+    }
+  }
+
+  startOrPause(isPause: boolean) {
+    this.log('startOrPause isPause=' + isPause + ' ' + this.downloadingTask.length)
+    this.downloadingTask.forEach((ts) => {
+      if (isPause) {
+        ts.task?.pause((err: BusinessError) => {
+          if (err) {
+            this.log(`startOrPause fail,tid=${ts.task?.tid} Code: ${err.code}, message: ${err.message}`);
+            return;
+          }
+          this.log(`startOrPause Succeeded in pausing a download task. `);
+        });
+      } else {
+        ts.task?.resume((err: BusinessError) => {
+          if (err) {
+            this.log(`startOrPause fail,tid=${ts.task?.tid} Code: ${err.code}, message: ${err.message}`);
+            return;
+          }
+          this.log(`startOrPause Succeeded in resuming a download task. `);
+        });
+      }
+    })
+  }
+
+  /**
+   *
+   * @param context
+   * @param url
+   * @param callback
+   * @param gauge false代表仅完成或失败的通知 true发出每个进度已完成或失败的通知
+   * @param canPause 是否可以暂停，云存中的下载任务可以暂停
+   */
+  download(context: Context, url: string, path: string,
+    callback?: (result: boolean, progress: request.agent.Progress) => void,
+    gauge: boolean = false, canPause: boolean = false) {
+    this.log('download begin path:' + path)
+    let config: request.agent.Config = {
       action: request.agent.Action.DOWNLOAD,
       url: url,
       overwrite: true,
       method: 'GET',
       //保存的地址，默认为cache目录下，如果需要保存在子目录下需要提前手动创建。
-      saveas: './',
+      //saveas: './',
+      saveas: path,
       mode: request.agent.Mode.BACKGROUND,
-      gauge: true, //false：代表仅完成或失败的通知
+      gauge: gauge,
       priority: 0
     }
-    request.agent.create(context, config1).then((task: request.agent.Task) => {
+    request.agent.create(context, config).then((task: request.agent.Task) => {
       console.log(task.tid)
-      let createOnCallback2 = (progress: request.agent.Progress) => {
+      let progressCallback = (progress: request.agent.Progress) => {
         //this.log('download task pro.' + progress.sizes + '/' + progress.processed);
         if (callback) {
-          callback(true, progress.processed)
+          callback(true, progress)
         }
       };
 
-      let createOnCallback = (progress: request.agent.Progress) => {
-        this.log('downloadTask complete,filesDir:');
+      let completedCallback = (progress: request.agent.Progress) => {
         let index = this.downloadingTask.findIndex((value) => {
-          return value.tid == task.tid
+          return value.task!.tid == task.tid
         })
         if (index >= 0) {
           this.downloadingTask.splice(index, 1)
         }
       };
 
-      let createOnCallback1 = (progress: request.agent.Progress) => {
-        this.log('download task failed.' + progress);
+      let failedCallback = (progress: request.agent.Progress) => {
+        this.log('download task failed: ' + progress);
         let index = this.downloadingTask.findIndex((value) => {
-          return value.tid == task.tid
+          return value.task!.tid == task.tid
         })
         if (index >= 0) {
           this.downloadingTask.splice(index, 1)
         }
         if (callback) {
-          callback(false, 0)
+          callback(false, progress)
         }
       };
-
-      let responseCallback = (response: request.agent.HttpResponse) => {
-        this.log('download task response.' + JSON.stringify(response) + JSON.stringify(response.headers));
-      };
-      task.on('progress', createOnCallback2);
-      task.on('failed', createOnCallback1);
-      task.on('completed', createOnCallback);
-      task.on('response', responseCallback)
-      this.downloadingTask.push(task)
+      task.on('progress', progressCallback);
+      task.on('failed', failedCallback);
+      task.on('completed', completedCallback);
+      if (canPause) {
+        this.downloadingTask.push(new DownloadTask(path, task))
+      }
       task.start((err: BusinessError) => {
         if (err) {
-          console.error(`Failed to start the download task, Code: ${err.code}, message: ${err.message}`);
+          this.log(`Failed to start the download task, Code: ${err.code}, message: ${err.message}`);
           return;
         }
-        this.log(`Succeeded in starting a download task.`);
+        this.log(`Succeeded in starting a download task tid:${task.tid}`);
       });
-      this.log(`Succeeded in start a download task. result: ${task.tid}`);
     }).catch((err: BusinessError) => {
-      console.error(`Failed to create a download task, Code: ${err.code}, message: ${err.message}`);
+      this.log(`Failed to create a download task, Code: ${err.code}, message: ${err.message}`);
     });
   }
 }

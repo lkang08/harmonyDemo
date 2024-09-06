@@ -60,8 +60,8 @@ struct Index {
       Column() {
         Text(this.message).fontSize(14).backgroundColor(Color.Red).height(40).onClick(()=>{
           //this.test()
-          //AppRouter.pushNamedPage(RouterPath.DownloadPage)
-          router.pushUrl({url:'pages/DownloadPage'})
+          AppRouter.pushNamedPage(RouterPath.DownloadPage)
+          //router.pushUrl({url:'pages/DownloadPage'})
         })
       }
       .alignItems(HorizontalAlign.Start)
@@ -76,6 +76,9 @@ struct Index {
         Text(this.message).fontSize(14).backgroundColor(Color.Red).height(40)
 
       }.height(50).backgroundColor(Color.Gray).width('100%').justifyContent(FlexAlign.SpaceAround)
+      .onClick(()=>{
+        router.pushUrl({url:'pages/DownloadPage'})
+      })
 
       Blank().height(5)
     }
