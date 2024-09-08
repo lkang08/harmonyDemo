@@ -99,7 +99,7 @@ export class DownloadManager {
     request.agent.create(context, config).then((task: request.agent.Task) => {
       console.log(task.tid)
       let progressCallback = (progress: request.agent.Progress) => {
-        this.log('###### download task pro.' + progress.sizes + '/' + progress.processed + ' tid:' + task.tid + ' name:' + name);
+        this.log('##Manager name:' + name+ ' ,progress:' + progress.processed + '/' + progress.sizes + ' ,tid:' + task.tid);
         if (callback) {
           callback(true, progress)
         }

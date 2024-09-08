@@ -69,7 +69,7 @@ export struct DownloadPage {
       }
       item.curSize = progress.processed
       item.progress = item.curSize / item.totalSize * 100
-      DLog.info(item.name + ' callback ' + item.curSize + ' ' + item.progress + ' ' + progress.sizes, 'DownloadManager')
+      DLog.info('page name:' + item.name + ' ,progress:' + item.curSize + '/' + progress.sizes, 'DownloadManager')
       if (item.curSize >= item.totalSize) {
         let index = this.list.findIndex((value: Item) => {
           return value.name == item.name
@@ -93,11 +93,11 @@ export struct DownloadPage {
 
   delTask() {
     if (this.list.length > 0) {
-      this.manager.startOrPause(true)
+      //this.manager.startOrPause(true)
       let item = this.list[0]
       this.manager.deleteTask(item.path)
       this.list.splice(0, 1)
-      this.manager.startOrPause(false)
+      //this.manager.startOrPause(false)
     }
     this.startDownload()
   }
