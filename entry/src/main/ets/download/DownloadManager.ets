@@ -43,7 +43,7 @@ export class DownloadManager {
           this.log(`deleteTask fail,tid=${del[0].task?.tid} Code: ${err.code}, message: ${err.message}`);
           return;
         }
-        this.log(`deleteTask Succeeded `);
+        this.log(`deleteTask Succeeded tid:${del[0].task?.tid}}`);
       })
     }
   }
@@ -95,10 +95,11 @@ export class DownloadManager {
       gauge: gauge,
       priority: 0
     }
+    let name=path.substring(path.lastIndexOf('/') + 1, path.length)
     request.agent.create(context, config).then((task: request.agent.Task) => {
       console.log(task.tid)
       let progressCallback = (progress: request.agent.Progress) => {
-        //this.log('download task pro.' + progress.sizes + '/' + progress.processed);
+        this.log('###### download task pro.' + progress.sizes + '/' + progress.processed + ' tid:' + task.tid + ' name:' + name);
         if (callback) {
           callback(true, progress)
         }

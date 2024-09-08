@@ -5,9 +5,13 @@ import { faceDetector } from '@kit.CoreVisionKit';
 import { common } from '@kit.AbilityKit';
 import { statfs } from '@kit.CoreFileKit';
 import { BusinessError, request } from '@kit.BasicServicesKit';
+import { it } from '@ohos/hypium';
 
-const  testUrl = 'https://www.python.org/ftp/python/3.12.5/python-3.12.5-amd64.exe'
-const testUrl1 = 'http://dl.ehome.21cn.com/oos/fileDownload?appKey=deviceCloud&timeStamp=1725416424686&version=v1.0&format=json&cid=1018&paras=2CE3F7C0044A37894211E01B91F097FAA92B6A788637A9ED3F8DEE3CAE6C6B778009139F27E21A666A9D75EAB0C0407DCEB1E1C14F6B2C9064C566B6AB2FAE11A3E5AFC714E1C1B0F9968F8054451B9DF230DBE878E3B763FFDE854C0B923FA139C82EC0EC5D6BBD4466C3CF157EB9C35448002AB161205E7BCA7E0DAE2FA383450FC85948504BB7D5E5C5BB&appSignature=iHZ309qjhRm0i0MsbP/bOLMqvmw='
+const testUrl = 'https://www.python.org/ftp/python/3.12.5/python-3.12.5-amd64.exe' //26508648
+const testUrl1 =
+  'https://download.ifonts.com/app-installer/desktop/iFonts-Win-2.5.4.exe?attname=iFonts-Win-2.5.4-00ji9w.exe&v=3434994575&sign=5042e29ef3e2c43227faa8b6275676ab&t=66dd1551'//75294016
+const MAX_DOWNLOAD = 2
+
 @Component
 @Entry({ routeName: RouterPath.DownloadPage })
 export struct DownloadPage {
@@ -21,36 +25,31 @@ export struct DownloadPage {
   }
 
   init() {
-    for (let i = this.index; i < this.index + 4; i++) {
-      let item = new Item('task ' + i, testUrl)
+    for (let i = this.index; i < this.index + 5; i++) {
+      let item = new Item('task ' + i, testUrl, '')
       this.list.push(item)
     }
-    this.index += 4
-    this.downloadItem(this.list[0])
-    //this.downloadItem(this.list[1])
-    this.getSize()
+    this.index += 5
+    this.startDownload()
   }
 
-  getSize() {
-    let context = getContext(this) as common.UIAbilityContext;
-    let path = context.filesDir;
-    statfs.getTotalSize(path).then((number: number) => {
-      console.info("getTotalSize succeed, Size: " + number); //1009074044928
-    }).catch((err: BusinessError) => {
-      console.error("getTotalSize failed with error message: " + err.message + ", error code: " + err.code);
-    });
-    statfs.getFreeSize(path, (err: BusinessError, number: number) => {
-      if (err) {
-        console.error("getFreeSize failed with error message: " + err.message + ", error code: " + err.code);
-      } else {
-        console.info("getFreeSize succeed, Size: " + number); //987471425536
+  startDownload() {
+    for (let i = 0; i < MAX_DOWNLOAD; i++) {
+      if (i < this.list.length) {
+        this.downloadItem(this.list[i])
       }
-    });
+    }
   }
+
+  lastName = ''
 
   getPath() {
-    let date = new Date()
-    return getContext()!!.filesDir + '/download/' + date.toTimeString()
+    let name = new Date().toLocaleTimeString()
+    if (this.lastName == name) { //名字唯一
+      name = name + ' 1'
+    }
+    this.lastName = name
+    return getContext()!!.filesDir + '/download/' + name
   }
 
   downloadItem(item: Item) {
@@ -58,10 +57,11 @@ export struct DownloadPage {
       return
     }
     item.isDownloading = true
-    let path = this.getPath()
-    this.manager.download(this.context, item.url, path, (result: boolean,  progress: request.agent.Progress) => {
+    item.path = this.getPath()
+    item.name = item.name + ':' + item.path.substring(item.path.lastIndexOf('/') + 1, item.path.length)
+    this.manager.download(this.context, item.url, item.path, (result: boolean, progress: request.agent.Progress) => {
       if (!result) {
-        DLog.error('error:' + item.name, 'DownloadManager')
+        DLog.error('downloadItem error:' + item.name, 'DownloadManager')
         item.isDownloading = false
         item.isError = true
         this.downNext()
@@ -69,7 +69,7 @@ export struct DownloadPage {
       }
       item.curSize = progress.processed
       item.progress = item.curSize / item.totalSize * 100
-      DLog.info('callback ' + item.curSize + ' ' + item.progress + ' ' + progress.sizes, 'DownloadManager')
+      DLog.info(item.name + ' callback ' + item.curSize + ' ' + item.progress + ' ' + progress.sizes, 'DownloadManager')
       if (item.curSize >= item.totalSize) {
         let index = this.list.findIndex((value: Item) => {
           return value.name == item.name
@@ -91,16 +91,41 @@ export struct DownloadPage {
     }
   }
 
+  delTask() {
+    if (this.list.length > 0) {
+      this.manager.startOrPause(true)
+      let item = this.list[0]
+      this.manager.deleteTask(item.path)
+      this.list.splice(0, 1)
+      this.manager.startOrPause(false)
+    }
+    this.startDownload()
+  }
+
+  startOrPause() {
+    this.manager.startOrPause(this.isPause)
+  }
+
   private fontColor = Color.Black
 
   build() {
     Column() {
-      Text('add down:')
-        .fontSize(28)
-        .fontColor(Color.Red)
-        .onClick(() => {
-          this.init()
-        })
+      Flex({ direction: FlexDirection.Row, justifyContent: FlexAlign.SpaceEvenly }) {
+        Text('Add')
+          .fontSize(28)
+          .fontColor(Color.Red)
+          .onClick(() => {
+            this.init()
+          })
+
+        Text('Del')
+          .fontSize(28)
+          .fontColor(Color.Red)
+          .onClick(() => {
+            this.delTask()
+          })
+      }
+
       Column() {
         Text(this.isPause ? '全部开始' : '全部暂停')
           .fontSize(16)
@@ -108,7 +133,7 @@ export struct DownloadPage {
           .fontColor(this.fontColor)
           .onClick(() => {
             this.isPause = !this.isPause
-            this.manager.startOrPause(this.isPause)
+            this.startOrPause()
           })
         List() {
           ForEach(this.list, (item: Item) => {
@@ -125,7 +150,7 @@ export struct DownloadPage {
       .backgroundColor(Color.White)
     }
     .backgroundColor('#f2d9d0d0')
-    .padding({ top: 50 })
+    .padding({ top: 5, bottom: 5 })
     .justifyContent(FlexAlign.Start)
     .width('100%')
     .height('100%')
@@ -182,14 +207,16 @@ struct ListItemComponent {
 
 @Observed
 class Item {
-  constructor(name: string, url: string) {
+  constructor(name: string, url: string, path: string) {
     this.name = name
     this.url = url
+    this.path = path
   }
 
+  path: string = ''
   name: string = ''
   url: string = ''
-  totalSize: number = 60713155
+  totalSize: number = 26508648
   curSize: number = 0
   progress: number = 0
   isDownloading: boolean = false
