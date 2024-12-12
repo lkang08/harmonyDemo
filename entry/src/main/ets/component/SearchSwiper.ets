@@ -171,7 +171,7 @@ export struct SearchSwiper {
       })
       .edgeEffect(EdgeEffect.None)
       .overlay(this.fadingOverlay())
-      .height(400)
+      .height(200)
     }
   }
 

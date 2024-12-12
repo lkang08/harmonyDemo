@@ -5,6 +5,8 @@
   "main": "Index.ets",
   "author": "",
   "license": "Apache-2.0",
-  "dependencies": {}
+  "dependencies": {
+    "@ohos/crypto-js": "2.0.4"
+  }
 }
 

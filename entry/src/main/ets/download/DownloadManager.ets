@@ -1,6 +1,5 @@
 import { BusinessError, request } from '@kit.BasicServicesKit';
 import { Context } from '@ohos.arkui.UIContext';
-import { DLog } from '../util/DLog';
 
 class DownloadTask {
   task: request.agent.Task
@@ -25,7 +24,6 @@ export class DownloadManager {
   }
 
   log(msg: string) {
-    DLog.debug(msg, 'DownloadManager')
   }
 
   deleteTask(path: string) {
@@ -43,7 +41,7 @@ export class DownloadManager {
           this.log(`deleteTask fail,tid=${del[0].task?.tid} Code: ${err.code}, message: ${err.message}`);
           return;
         }
-        this.log(`deleteTask Succeeded tid:${del[0].task?.tid}}`);
+        this.log(`deleteTask Succeeded tid:${del[0].task?.tid}`);
       })
     }
   }

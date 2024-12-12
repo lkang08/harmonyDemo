@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\HP\\.ohos\\config\\default_HarmonyDemo_0s4blY34V4ownWsUgdTcSJPsbGOZ5LGhx0aZ27hApYQ=.cer",
+          "storePassword": "0000001AB40F399E8B24D9173F0599FEAB410A90C53246F789352532F7D687D6CC2DF2A8CD374209420D",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001AB18F742F99FB8A5DC2E1843D8B801072F1667F4225C377F59B1E299625D74A6DA304506899F7",
+          "profile": "C:\\Users\\HP\\.ohos\\config\\default_HarmonyDemo_0s4blY34V4ownWsUgdTcSJPsbGOZ5LGhx0aZ27hApYQ=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\HP\\.ohos\\config\\default_HarmonyDemo_0s4blY34V4ownWsUgdTcSJPsbGOZ5LGhx0aZ27hApYQ=.p12"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",

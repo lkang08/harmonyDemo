@@ -1,16 +1,11 @@
+
 import { RouterPath } from '../constant/RouterPath';
 import { DownloadManager } from '../download/DownloadManager';
 import { DLog } from '../util/DLog';
-import { faceDetector } from '@kit.CoreVisionKit';
-import { common } from '@kit.AbilityKit';
-import { statfs } from '@kit.CoreFileKit';
-import { BusinessError, request } from '@kit.BasicServicesKit';
-import { it } from '@ohos/hypium';
+import { request } from '@kit.BasicServicesKit';
 
 const testUrl = 'https://www.python.org/ftp/python/3.12.5/python-3.12.5-amd64.exe' //26508648
-const testUrl1 =
-  'https://download.ifonts.com/app-installer/desktop/iFonts-Win-2.5.4.exe?attname=iFonts-Win-2.5.4-00ji9w.exe&v=3434994575&sign=5042e29ef3e2c43227faa8b6275676ab&t=66dd1551'//75294016
-const MAX_DOWNLOAD = 2
+const MAX_DOWNLOAD = 1
 
 @Component
 @Entry({ routeName: RouterPath.DownloadPage })
@@ -57,8 +52,8 @@ export struct DownloadPage {
       return
     }
     item.isDownloading = true
-    item.path = this.getPath()
-    item.name = item.name + ':' + item.path.substring(item.path.lastIndexOf('/') + 1, item.path.length)
+    item.path = getContext()!!.filesDir + '/download/' + item.name //this.getPath()
+    item.name = item.name //+ ':' + item.path.substring(item.path.lastIndexOf('/') + 1, item.path.length)
     this.manager.download(this.context, item.url, item.path, (result: boolean, progress: request.agent.Progress) => {
       if (!result) {
         DLog.error('downloadItem error:' + item.name, 'DownloadManager')
@@ -68,6 +63,9 @@ export struct DownloadPage {
         return
       }
       item.curSize = progress.processed
+      if (item.totalSize != progress.sizes[0]) {
+        item.totalSize = progress.sizes[0]
+      }
       item.progress = item.curSize / item.totalSize * 100
       DLog.info('page name:' + item.name + ' ,progress:' + item.curSize + '/' + progress.sizes, 'DownloadManager')
       if (item.curSize >= item.totalSize) {
