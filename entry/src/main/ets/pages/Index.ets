@@ -1,15 +1,16 @@
 import { AddressBook, Person } from '../model/Model';
-import { AddressBookView } from './MyComponent';
 import taskpool from '@ohos.taskpool';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { promptAction, router } from '@kit.ArkUI';
+import { promptAction } from '@kit.ArkUI';
 import { SearchSwiper } from '../component/SearchSwiper';
 import { RouterPath } from '../constant/RouterPath';
 import { AppRouter } from '../router/AppRouter';
-import { ThreeDESUtil } from '../util/ThreeDESUtil';
-import { TouchPointPainterView } from '../component/TouchPointPainterView';
 import { common, OpenLinkOptions, Want } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { http } from '@kit.NetworkKit';
+import { picker } from '@kit.CoreFileKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { fileUri } from '@kit.CoreFileKit';
 
 @Concurrent
 function serviceHandle(pars: number): number {
@@ -101,7 +102,6 @@ struct Index {
       .onClick(() => {
         //router.pushUrl({url:'pages/DownloadPage'})
         //router.push({url:'pages/DownloadPage'})
-        ThreeDESUtil.test()
       })
 
 
@@ -109,21 +109,7 @@ struct Index {
       Text('Text')
         .fontSize(15)
         .onClick(() => {
-          let context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-          let want: Want = {
-            uri: "tysl-tyyy://vcp/message?t=1&b=11"
-          };
-
-          try {
-            context.startAbility(want).then(() => {
-              hilog.info(0, tag, 'start ability success.');
-            }).catch((err: BusinessError) => {
-              hilog.error(0, tag, `start ability failed. Code is ${err.code}, message is ${err.message}`);
-            });
-          } catch (paramError) {
-            hilog.error(0, tag,
-              `Failed to start ability. Code is ${paramError.code}, message is ${paramError.message}`);
-          }
+          this.httpTest()
         })
 
       Text('Text2')
@@ -146,15 +132,82 @@ struct Index {
               `Failed to start ability. Code is ${paramError.code}, message is ${paramError.message}`);
           }
         })
-
-      Text('open link')
+      Text('write')
         .fontSize(15)
         .margin(10)
         .onClick(() => {
-          this.openLink()
+          //this.openLink()
+          this.write()
         })
-
+      Text('Save')
+        .fontSize(15)
+        .margin(10)
+        .onClick(() => {
+          //this.openLink()
+          this.save()
+        })
+      Text('crash')
+        .fontSize(15)
+        .margin(10)
+        .onClick(() => {
+          this.crash()
+        })
     }
+  }
+
+  crash() {
+    // 在按钮点击函数中构造一个crash场景，触发应用崩溃事件
+    let test = 'abc'
+    let result: object = JSON.parse(test);
+  }
+
+  async write() {
+    let context = getContext(this) as common.Context;
+    let pathDir = context.filesDir;
+    let filePath = pathDir + "/test.txt";
+    let file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+    let str: string = "hello, world\n我的天\n12344444";
+    fs.write(file.fd, str).then((writeLen: number) => {
+      console.info("write data to file succeed and size is:" + writeLen);
+    }).catch((err: BusinessError) => {
+      console.error("write data to file failed with error message: " + err.message + ", error code: " + err.code);
+    }).finally(() => {
+      fs.closeSync(file);
+    });
+  }
+  async save() { // 需确保 context 由 UIAbilityContext 转换而来
+    try {
+      let context = getContext(this) as common.Context;
+      let pathDir = context.filesDir;
+      let filePath = pathDir + "/test.txt";
+      let file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+      let uri = fileUri.getUriFromPath(filePath);
+      let fileUriObject = new fileUri.FileUri(filePath);
+      let name = fileUriObject.toString()
+      let documentSaveOptions = new picker.DocumentSaveOptions();
+      //documentSaveOptions.defaultFilePathUri = name
+      documentSaveOptions.newFileNames = ['log.txt'];
+      let documentPicker = new picker.DocumentViewPicker(context);
+      documentPicker.save(documentSaveOptions).then((documentSaveResult: Array<string>) => {
+        console.info('DocumentViewPicker.save successfully, documentSaveResult uri: ' +
+        JSON.stringify(documentSaveResult));
+        let dst = fs.openSync(documentSaveResult[0],fs.OpenMode.WRITE_ONLY)
+        fs.copyFileSync(file.fd, dst.fd)
+      }).catch((err: BusinessError) => {
+        console.error('DocumentViewPicker.save failed with err: ' + JSON.stringify(err));
+      });
+    } catch (error) {
+      let err: BusinessError = error as BusinessError;
+      console.error('DocumentViewPicker failed with err: ' + JSON.stringify(err));
+    }
+  }
+
+  url = "https://www.kuaidi100.com/query?type=shunfeng&postid=sf1222"
+
+  async httpTest() {
+    let httpRequest = http.createHttp();
+    let res = await httpRequest.request(this.url)
+    hilog.debug(0, 'httpTest', `${res.result}`)
   }
 
   openLink() {
